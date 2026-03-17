@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Type checker / linter
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE / editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Data and artifacts
+data/
+artifacts/
+runs/
+outputs/
+checkpoints/
+wandb/
+
+# Assignment outputs
+A*/data/
+A*/artifacts/
+A*/runs/
+A*/outputs/
+A*/checkpoints/
+A*/**/*.pt
+A*/**/*.pth
+A*/**/*.ckpt
+A*/**/*.png
+A*/**/*.jpg
+A*/**/*.jpeg
+A*/**/*.npy
+A*/**/*.npz
+A*/**/*.csv
+A*/**/*.jsonl
+
+# Keep source-controlled docs
+!README.md
+!A*/README.md
+!requirements.txt
