@@ -48,7 +48,7 @@ Each assignment folder contains a `README.md` with full theory, mathematical der
 | A01 | Training loop from scratch | CNN, backprop, Adam, cross-entropy | MNIST | <1 GB |
 | A02 | Transfer learning | ResNet-18, fine-tuning, BatchNorm | EuroSAT | ~2 GB |
 | A03 | Architectural modifications | SE blocks, Focal Loss, Grad-CAM | EuroSAT | ~3 GB |
-| A04 | Contrastive learning | SimCLR, NT-Xent, linear probe, UMAP | EuroSAT | ~4 GB |
+| A04 | Contrastive learning | SimCLR, NT-Xent, linear probe, UMAP | EuroSAT | ~7 GB |
 | A05 | Object detection | YOLOv8, FPN, mAP, head surgery | VisDrone | ~6 GB |
 | A06 | Attention from scratch | Scaled dot-product, MHA, causal masking | — | <1 GB |
 | A07 | Tokenizer + LM | BPE, decoder transformer, perplexity | Hindi CC-100 | ~4 GB |
