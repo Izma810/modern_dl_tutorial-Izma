@@ -58,16 +58,16 @@ where $x_t$ is the embedded character at step $t$, $h_{t-1}$ is the hidden state
 
 ```mermaid
 graph TD
-    xt["x_t  (embed_dim)"]
-    ht1["h_t-1  (H)"]
-    Wxh["W_xh  (H x embed_dim)"]
-    Whh["W_hh  (H x H)"]
-    bh["b_h  (H)"]
-    at["a_t = W_xh * x_t + W_hh * h_t-1 + b_h"]
-    ht["h_t = tanh(a_t)  (H)"]
-    Why["W_hy  (V x H)"]
-    by["b_y  (V)"]
-    zt["z_t = W_hy * h_t + b_y  (V)"]
+    xt["xt  (embed dim)"]
+    ht1["ht-1  (H)"]
+    Wxh["Wxh  (H x embed dim)"]
+    Whh["Whh  (H x H)"]
+    bh["bh  (H)"]
+    at["at = Wxh * xt + Whh * ht-1 + bh"]
+    ht["ht = tanh(at)  (H)"]
+    Why["Why  (V x H)"]
+    by["by  (V)"]
+    zt["zt = Why * ht + by  (V)"]
 
     xt --> Wxh --> at
     ht1 --> Whh --> at
@@ -149,14 +149,14 @@ where $\tanh'(a_t) = 1 - \tanh^2(a_t)$ applied element-wise, and $\delta^a_{T+1}
 
 ```mermaid
 graph RL
-    y3["y3_hat  ->  dy3"] -->|"W_hy_T"| h3["dh3"]
-    y2["y2_hat  ->  dy2"] -->|"W_hy_T"| h2["dh2"]
-    y1["y1_hat  ->  dy1"] -->|"W_hy_T"| h1["dh1"]
-    h3 -->|"times tanh_grad"| a3["da3"]
-    h2 -->|"times tanh_grad"| a2["da2"]
-    h1 -->|"times tanh_grad"| a1["da1"]
-    a3 -->|"W_hh_T"| h2
-    a2 -->|"W_hh_T"| h1
+    y3["y3hat  ->  dy3"] -->|"WhyT"| h3["dh3"]
+    y2["y2hat  ->  dy2"] -->|"WhyT"| h2["dh2"]
+    y1["y1hat  ->  dy1"] -->|"WhyT"| h1["dh1"]
+    h3 -->|"times tanhgrad"| a3["da3"]
+    h2 -->|"times tanhgrad"| a2["da2"]
+    h1 -->|"times tanhgrad"| a1["da1"]
+    a3 -->|"WhhT"| h2
+    a2 -->|"WhhT"| h1
 
     style h1 fill:#e74c3c,color:#fff
     style h2 fill:#e74c3c,color:#fff
@@ -228,22 +228,22 @@ Three gates regulate information flow:
 
 ```mermaid
 graph TD
-    xt["x_t"]
-    ht1["h_t-1"]
+    xt["xt"]
+    ht1["ht-1"]
 
-    xt --> fg["Forget gate: f_t = sigmoid(Wf*x_t + Uf*h_t-1 + bf)"]
+    xt --> fg["Forget gate: ft = sigmoid(Wf*xt + Uf*ht-1 + bf)"]
     ht1 --> fg
-    xt --> ig["Input gate: i_t = sigmoid(Wi*x_t + Ui*h_t-1 + bi)"]
+    xt --> ig["Input gate: it = sigmoid(Wi*xt + Ui*ht-1 + bi)"]
     ht1 --> ig
-    xt --> cm["Candidate: c_tilde_t = tanh(Wc*x_t + Uc*h_t-1 + bc)"]
+    xt --> cm["Candidate: ctilde = tanh(Wc*xt + Uc*ht-1 + bc)"]
     ht1 --> cm
-    xt --> og["Output gate: o_t = sigmoid(Wo*x_t + Uo*h_t-1 + bo)"]
+    xt --> og["Output gate: ot = sigmoid(Wo*xt + Uo*ht-1 + bo)"]
     ht1 --> og
 
-    fg -->|"f_t * c_t-1"| cs["Cell state: c_t = f_t*c_t-1 + i_t*c_tilde_t"]
+    fg -->|"ft * ct-1"| cs["Cell state: ct = ft*ct-1 + it*ctilde"]
     ig --> cs
     cm --> cs
-    cs --> hs["Hidden state: h_t = o_t * tanh(c_t)"]
+    cs --> hs["Hidden state: ht = ot * tanh(ct)"]
     og --> hs
 
     style fg fill:#9b59b6,color:#fff
@@ -307,25 +307,21 @@ Try temperatures 0.5, 0.8, and 1.2 and compare the output. This is one of the an
 ## Reading Material
 
 **Primary — read before starting**
-
-- `RNNs.pdf` and `LSTMs.pdf` provided with this assignment — the mathematical derivations are your ground truth; read them alongside the theory above
-- Karpathy, "The Unreasonable Effectiveness of Recurrent Neural Networks" (2015): http://karpathy.github.io/2015/05/21/rnn-effectiveness/ — required reading; this is the piece that motivated the entire field of character-level modelling, and the tinyshakespeare corpus comes from here
-- Stanford CS-230 RNN Cheatsheet: https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks/ — keep this open while implementing
+- Karpathy, "The Unreasonable Effectiveness of Recurrent Neural Networks" (2015): http://karpathy.github.io/2015/05/21/rnn-effectiveness/ 
+- Stanford CS-230 RNN Cheatsheet: https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks/
 
 **Videos — watch in this order**
 
 1. StatQuest: "RNNs Clearly Explained": https://www.youtube.com/watch?v=AsNTP8Kwu80 — watch first, before equations; builds the right intuition
 2. StatQuest: "LSTM Clearly Explained": https://www.youtube.com/watch?v=YCzL96nL7j0 — same series, direct continuation
-3. MIT 6.S191 (2025): "RNNs, Transformers, and Attention": https://www.youtube.com/watch?v=GvezxUdLrEk — covers RNNs, LSTMs, and the bridge to attention in one lecture; watch after implementing
-4. Python Engineer: "PyTorch RNN Tutorial": https://www.youtube.com/watch?v=WEV61GmmPrk — optional; shows the same ideas with `nn.RNN` to contrast with what you are doing
 
 **Application paper**
 
-- Wang, "Music Composition with RNN" (CS229, 2016): https://cs229.stanford.edu/proj2016/report/Wang-MusicCompositionWithRNN-report.pdf — a full pipeline applying character-level RNN and LSTM to music generation; direct application of everything in this assignment
+- Wang, "Music Composition with RNN" (CS229, 2016): https://cs229.stanford.edu/proj2016/report/Wang-MusicCompositionWithRNN-report.pdf
 
 **Original paper**
 
-- Hochreiter & Schmidhuber, "Long Short-Term Memory" (1997): https://www.bioinf.jku.at/publications/older/2604.pdf — the original LSTM paper; Section 1 and Section 2 are readable and worth studying
+- Hochreiter & Schmidhuber, "Long Short-Term Memory" (1997): https://www.bioinf.jku.at/publications/older/2604.pdf
 
 ---
 
