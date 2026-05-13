@@ -18,72 +18,190 @@ long-range dependency failures motivate attention.
 
 ## Theory
 
-### Why recurrence?
+### Why feedforward networks fail on language
 
-Feedforward networks process one input at a time with no memory. But language
-is ordered: the meaning of a character depends on the characters before it. An
-RNN introduces a hidden state $h_t$ that carries information forward through
-time, letting the same weights handle every position in a sequence.
+An MLP sees one input and produces one output. It has no memory of the past, so
 
-### The Elman RNN cell
+RNNs solve this by introducing a hidden state $h_t$ that summarizes everything
+
+```mermaid
+flowchart LR
+  x1[x_1] --> r1[RNN cell] --> h1[h_1]
+  x2[x_2] --> r2[RNN cell] --> h2[h_2]
+  x3[x_3] --> r3[RNN cell] --> h3[h_3]
+  h1 --> r2
+  h2 --> r3
+  h1 --> y1[y_1]
+  h2 --> y2[y_2]
+  h3 --> y3[y_3]
+```
+
+### The Elman RNN (char-level LM)
 
 At each time step $t$:
 
 $$a_t = W_{xh} x_t + W_{hh} h_{t-1} + b_h$$
 $$h_t = \tanh(a_t)$$
-$$\hat{y}_t = W_{hy} h_t + b_y$$
+$$z_t = W_{hy} h_t + b_y$$
+$$p_t = \text{softmax}(z_t)$$
 
-The key insight is weight sharing: the same parameters apply at every step.
-Unrolling in time is just a visualization for understanding gradients.
+where:
+- $x_t \in \mathbb{R}^V$ is the current character (one-hot or embedding),
+- $h_t \in \mathbb{R}^H$ is the hidden state,
+- $z_t \in \mathbb{R}^V$ are logits, $p_t$ is the predicted distribution,
+- $V$ is vocabulary size and $H$ is hidden size.
+
+Parameter shapes:
+
+| Parameter | Shape | Role |
+|---|---|---|
+| $W_{xh}$ | $H \times V$ | input to hidden |
+| $W_{hh}$ | $H \times H$ | hidden to hidden |
+| $b_h$ | $H$ | hidden bias |
+| $W_{hy}$ | $V \times H$ | hidden to logits |
+| $b_y$ | $V$ | output bias |
+
+The key feature is **weight sharing**: the same parameters apply at every
+
+```mermaid
+flowchart LR
+  xt[x_t] --> Wxh[W_xh]
+  ht1[h_{t-1}] --> Whh[W_hh]
+  Wxh --> at[a_t]
+  Whh --> at
+  at --> ht[h_t = tanh(a_t)]
+  ht --> Why[W_hy]
+  Why --> zt[z_t]
+  zt --> pt[softmax]
+```
+
+### Weight initialization and symmetry
+
+We use Xavier (Glorot) initialization: $W \sim \mathcal{N}(0, 2/(n_{in}+n_{out}))$.
+This keeps activation variance stable through time. Biases start at zero.
+Random initialization breaks symmetry; if all weights were equal, every hidden
+unit would learn the same feature and the model would collapse.
+
+### Loss: cross-entropy and perplexity
+
+At each time step we predict a distribution over the next character:
+
+$$\mathcal{L}_t = -\log p_t(y_t)$$
+
+The total loss over a sequence is $\mathcal{L} = \sum_t \mathcal{L}_t$. This is
+
+Perplexity is the exponential of the average cross-entropy:
+
+$$\text{PPL} = \exp\left(\frac{1}{T}\sum_{t=1}^T \mathcal{L}_t\right)$$
+
+Lower perplexity means better predictive uncertainty. A perplexity close to $V$
+means the model is guessing uniformly at random.
 
 ### Backpropagation Through Time (BPTT)
 
-Each hidden state affects both the output at time $t$ and the next hidden state
-at time $t+1$. The gradient at $h_t$ has two sources:
+Because parameters are shared, gradients sum across time:
 
-$$\delta^h_t = W_{hy}^\top \delta^y_t + W_{hh}^\top \delta^a_{t+1}$$
-$$\delta^a_t = \delta^h_t \odot \tanh'(a_t)$$
+$$\frac{\partial \mathcal{L}}{\partial \theta} = \sum_{t=1}^{T} \frac{\partial \mathcal{L}_t}{\partial \theta}$$
 
-Missing the second term is the most common BPTT bug. You must accumulate
-gradients across all time steps because parameters are shared.
+Define the error signals:
+
+$$\delta_t^y = \frac{\partial \mathcal{L}_t}{\partial z_t} = p_t - y_t$$
+$$\delta_t^h = W_{hy}^\top \delta_t^y + W_{hh}^\top \delta_{t+1}^a$$
+$$\delta_t^a = \delta_t^h \odot \tanh'(a_t)$$
+
+The hidden state $h_t$ affects loss in **two** ways: directly via the output
+at time $t$, and indirectly via the next step’s recurrence. Missing the second
+term is the most common BPTT bug.
+
+```mermaid
+flowchart RL
+  yloss[L_t] --> dy[delta_t^y]
+  dy --> dh1[W_hy^T]
+  dn[delta_{t+1}^a] --> dh2[W_hh^T]
+  dh1 --> dh[delta_t^h]
+  dh2 --> dh
+  dh --> da[delta_t^a = delta_t^h * tanh'(a_t)]
+```
 
 ### Vanishing and exploding gradients
 
-Gradients propagate through repeated multiplication by $W_{hh}^\top$ and
-element-wise derivatives of the nonlinearity. Over long sequences, this causes
-gradients to vanish (go to zero) or explode (go to infinity). Vanilla RNNs
-struggle to learn long-range dependencies because the gradient signal dies out.
+Unrolling shows repeated multiplication by $W_{hh}^\top$:
+
+$$\delta_t^a \propto (W_{hh}^\top)^{T-t} \delta_T^a$$
+
+If eigenvalues are $> 1$, gradients explode. If $< 1$, they vanish. The
+tanh derivative is in $(0, 1)$, making vanishing more likely on long sequences.
+This is why vanilla RNNs struggle with long-range dependencies.
+
+```mermaid
+flowchart LR
+  gT[delta_T] --> g3[W_hh^T] --> g2[W_hh^T] --> g1[W_hh^T]
+  g1 --> gt[delta_t]
+  style gT fill:#fff,stroke:#111
+  style gt fill:#fff,stroke:#111
+```
 
 ### Gradient clipping
 
-Clipping stabilizes training when gradients explode. Compute the global L2 norm
-and rescale if it exceeds a threshold $\tau$:
+Exploding gradients are mitigated by scaling all gradients if their global L2
+norm exceeds a threshold $\tau$:
 
-$$g \leftarrow g \cdot \frac{\tau}{\|g\|}$$
+$$N = \sqrt{\sum_i \|g_i\|^2}, \quad g_i \leftarrow g_i \cdot \frac{\tau}{N}$$
 
-Clipping does not fix vanishing gradients — that requires a different
-architecture.
+Clipping preserves direction but caps magnitude. It does not fix vanishing
+gradients.
 
-### LSTM: fixing the root cause
+### LSTM: gating the gradient path
 
-The LSTM introduces a cell state $c_t$ with a mostly linear path through time:
+LSTMs introduce a cell state $c_t$ with controlled, near-linear memory flow:
 
+$$f_t = \sigma(W_f x_t + U_f h_{t-1} + b_f)$$
+$$i_t = \sigma(W_i x_t + U_i h_{t-1} + b_i)$$
+$$\tilde{c}_t = \tanh(W_c x_t + U_c h_{t-1} + b_c)$$
 $$c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$$
+$$o_t = \sigma(W_o x_t + U_o h_{t-1} + b_o)$$
 $$h_t = o_t \odot \tanh(c_t)$$
 
-The forget gate $f_t$ controls how much information (and gradient) is preserved
-across long spans. This protects the gradient from repeated matrix
-multiplication and is why LSTMs handle longer dependencies better than vanilla
-RNNs.
+The key is the **Constant Error Carousel**: gradients through $c_t$ are
+multiplied by $f_t$, not by a fixed recurrent matrix. When $f_t \approx 1$,
+gradients flow across many steps without shrinking.
+
+```mermaid
+flowchart LR
+  xt[x_t] --> gates[All gates]
+  ht1[h_{t-1}] --> gates
+  gates --> ft[f_t]
+  gates --> it[i_t]
+  gates --> ot[o_t]
+  gates --> ct2[c~_t]
+  ct1[c_{t-1}] --> ct[c_t]
+  ft --> ct
+  it --> ct
+  ct2 --> ct
+  ct --> ht[h_t]
+  ot --> ht
+```
 
 ---
 
 ## Reading Material
 
-- Elman, "Finding Structure in Time" (1990): https://crl.ucsd.edu/~elman/Papers/fsit.pdf
-- Hochreiter & Schmidhuber, "Long Short-Term Memory" (1997): https://www.bioinf.jku.at/publications/older/2604.pdf
-- Karpathy, "The Unreasonable Effectiveness of Recurrent Neural Networks" (2015): http://karpathy.github.io/2015/05/21/rnn-effectiveness/
+**Primary (read these)**
+- The two course notes: `RNNs.pdf` and `LSTMs.pdf`
 - Stanford CS-230 RNN Cheatsheet: https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks/
+
+**Videos (watch in this order)**
+1. StatQuest: *RNNs Clearly Explained* — https://www.youtube.com/watch?v=AsNTP8Kwu80
+2. MIT 6.S191 (2025): *RNNs, Transformers, and Attention* — https://www.youtube.com/watch?v=GvezxUdLrEk
+3. StatQuest: *LSTM Clearly Explained* — https://www.youtube.com/watch?v=YCzL96nL7j0
+4. PyTorch RNN Tutorial — https://www.youtube.com/watch?v=WEV61GmmPrk
+
+**Application paper**
+- Wang, "Music Composition with RNN" (CS229, 2016): https://cs229.stanford.edu/proj2016/report/Wang-MusicCompositionWithRNN-report.pdf
+
+**Optional but highly recommended**
+- Karpathy, "The Unreasonable Effectiveness of RNNs" (2015): http://karpathy.github.io/2015/05/21/rnn-effectiveness/
+- Hochreiter & Schmidhuber, "Long Short-Term Memory" (1997): https://www.bioinf.jku.at/publications/older/2604.pdf
 
 ---
 
