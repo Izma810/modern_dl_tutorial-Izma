@@ -16,6 +16,79 @@ long-range dependency failures motivate attention.
 
 ---
 
+## Theory
+
+### Why recurrence?
+
+Feedforward networks process one input at a time with no memory. But language
+is ordered: the meaning of a character depends on the characters before it. An
+RNN introduces a hidden state $h_t$ that carries information forward through
+time, letting the same weights handle every position in a sequence.
+
+### The Elman RNN cell
+
+At each time step $t$:
+
+$$a_t = W_{xh} x_t + W_{hh} h_{t-1} + b_h$$
+$$h_t = \tanh(a_t)$$
+$$\hat{y}_t = W_{hy} h_t + b_y$$
+
+The key insight is weight sharing: the same parameters apply at every step.
+Unrolling in time is just a visualization for understanding gradients.
+
+### Backpropagation Through Time (BPTT)
+
+Each hidden state affects both the output at time $t$ and the next hidden state
+at time $t+1$. The gradient at $h_t$ has two sources:
+
+$$\delta^h_t = W_{hy}^\top \delta^y_t + W_{hh}^\top \delta^a_{t+1}$$
+$$\delta^a_t = \delta^h_t \odot \tanh'(a_t)$$
+
+Missing the second term is the most common BPTT bug. You must accumulate
+gradients across all time steps because parameters are shared.
+
+### Vanishing and exploding gradients
+
+Gradients propagate through repeated multiplication by $W_{hh}^\top$ and
+element-wise derivatives of the nonlinearity. Over long sequences, this causes
+gradients to vanish (go to zero) or explode (go to infinity). Vanilla RNNs
+struggle to learn long-range dependencies because the gradient signal dies out.
+
+### Gradient clipping
+
+Clipping stabilizes training when gradients explode. Compute the global L2 norm
+and rescale if it exceeds a threshold $\tau$:
+
+$$g \leftarrow g \cdot \frac{\tau}{\|g\|}$$
+
+Clipping does not fix vanishing gradients — that requires a different
+architecture.
+
+### LSTM: fixing the root cause
+
+The LSTM introduces a cell state $c_t$ with a mostly linear path through time:
+
+$$c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$$
+$$h_t = o_t \odot \tanh(c_t)$$
+
+The forget gate $f_t$ controls how much information (and gradient) is preserved
+across long spans. This protects the gradient from repeated matrix
+multiplication and is why LSTMs handle longer dependencies better than vanilla
+RNNs.
+
+---
+
+## Reading Material
+
+- Elman, "Finding Structure in Time" (1990): https://crl.ucsd.edu/~elman/Papers/fsit.pdf
+- Hochreiter & Schmidhuber, "Long Short-Term Memory" (1997): https://www.bioinf.jku.at/publications/older/2604.pdf
+- Karpathy, "The Unreasonable Effectiveness of Recurrent Neural Networks" (2015): http://karpathy.github.io/2015/05/21/rnn-effectiveness/
+- Stanford CS-230 RNN Cheatsheet: https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks/
+
+---
+
+## Assignment
+
 ## Learning objectives
 
 - Implement an Elman RNN cell manually in PyTorch
@@ -26,7 +99,7 @@ long-range dependency failures motivate attention.
 
 ---
 
-## Dataset
+### Dataset
 
 We use the standard tinyshakespeare corpus from Karpathy’s char-rnn repo
 (~1.1MB, ~1M characters). `data.py` downloads and prepares the data.
@@ -37,7 +110,7 @@ We use the standard tinyshakespeare corpus from Karpathy’s char-rnn repo
 
 ---
 
-## Task
+### Task
 
 **Part 1 — Vanilla RNN (manual cell)**
 
@@ -51,7 +124,7 @@ and generated samples.
 
 ---
 
-## Metrics
+### Metrics
 
 - **Cross-entropy loss** (per character)
 - **Perplexity**: `exp(avg_cross_entropy)`
@@ -61,7 +134,7 @@ random guessing. Good character models typically reach PPL in low single digits.
 
 ---
 
-## File structure
+### File structure
 
 ```
 A05/
@@ -78,7 +151,7 @@ A05/
 
 ---
 
-## What to implement (TODOs only here)
+### What to implement (TODOs only here)
 
 - `rnn.py`: RNN parameters + forward pass
 - `lstm.py`: LSTM parameters + forward pass
@@ -88,7 +161,7 @@ All other files are fully implemented and should not require edits.
 
 ---
 
-## Training details
+### Training details
 
 - **Truncated BPTT**: sequences are chunked into windows (e.g. 100 chars)
 - **Hidden state detachment**: detach hidden state between chunks
@@ -96,7 +169,7 @@ All other files are fully implemented and should not require edits.
 
 ---
 
-## Expected outputs
+### Expected outputs
 
 All outputs save under `./outputs` by default:
 
@@ -109,7 +182,7 @@ All outputs save under `./outputs` by default:
 
 ---
 
-## Recommended run order
+### Recommended run order
 
 1. `python gradient_check.py`
 2. `python train.py --model rnn`
@@ -119,7 +192,7 @@ All outputs save under `./outputs` by default:
 
 ---
 
-## Notes
+### Notes
 
 1. **No high-level RNNs allowed.** Using `nn.RNN`, `nn.LSTM`, or `nn.GRU`
    anywhere in this assignment is incorrect.
