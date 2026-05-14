@@ -1,5 +1,5 @@
 # Decision Trees & Ensembles: Complete Reference Guide
-
+**Shourya Choudhary**
 **ARIES IIT Delhi | ML Lecture Series**
 
 This document provides the mathematical foundations, implementation details, and advanced topics for decision trees and ensemble methods. Use this as a comprehensive reference after the lecture.
@@ -1372,14 +1372,7 @@ print(f"MSE: {mean_squared_error(y_test_reg, y_pred_gb):.2f}")
    - Discussion of differences between your implementation and sklearn
    - Feature importance analysis
 3. **Bonus**: If you complete bonus challenges, include them in the notebook
-
-**Grading Criteria**:
-- Part 1 (40%): Correct decision tree implementation
-- Part 2 (20%): Comparison with sklearn
-- Part 3 (30%): Random Forest implementation
-- Part 4 (10%): Visualization and analysis
-- Bonus (up to 20% extra credit)
-
+(All of these are optional but encouraged provided you have time for them)
 ---
 
 ## Additional Resources
@@ -1552,19 +1545,19 @@ xgb = XGBClassifier(
 
 ### Common Pitfalls to Avoid
 
-1. ❌ Forgetting to handle missing values for sklearn
-2. ❌ Not checking for data leakage
-3. ❌ Using trees for high-dimensional sparse data
-4. ❌ Expecting trees to extrapolate beyond training range
-5. ❌ Not using early stopping with gradient boosting
-6. ❌ Tuning too many hyperparameters at once
-7. ❌ Ignoring class imbalance
-8. ❌ Using default parameters for XGBoost in production
+1. Forgetting to handle missing values for sklearn
+2. Not checking for data leakage
+3. Using trees for high-dimensional sparse data
+4. Expecting trees to extrapolate beyond training range
+5. Not using early stopping with gradient boosting
+6. Tuning too many hyperparameters at once
+7. Ignoring class imbalance
+8. Using default parameters for XGBoost in production
 
 ---
 
 **End of Reading Material**
 
-For questions or clarifications, reach out on the ARIES Slack channel or attend office hours.
+For questions or clarifications, reach out on the me on WhatsApp(8826350047).
 
 Good luck with the assignment! 🌲🚀
