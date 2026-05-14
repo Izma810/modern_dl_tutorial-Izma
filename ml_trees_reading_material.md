@@ -1,5 +1,6 @@
 # Decision Trees & Ensembles: Complete Reference Guide
 **Shourya Choudhary**
+
 **ARIES IIT Delhi | ML Lecture Series**
 
 This document provides the mathematical foundations, implementation details, and advanced topics for decision trees and ensemble methods. Use this as a comprehensive reference after the lecture.
