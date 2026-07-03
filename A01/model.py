@@ -1,40 +1,45 @@
-"""Model skeleton for A01."""
-
 from __future__ import annotations
 
 import torch
 import torch.nn as nn
 
-
 class MyCNN(nn.Module):
-    """Simple CNN for MNIST classification.
-
-    Input shape:
-        x: (B, 1, 28, 28)
-    Output shape:
-        logits: (B, num_classes)
-    """
 
     def __init__(self, num_classes: int = 10) -> None:
-        """Initialize model layers.
-
-        Args:
-            num_classes: Number of target classes.
-        """
         super().__init__()
-        # TODO: Define convolution and classifier layers.
-        # Example blocks: conv -> relu -> pool, repeated, then linear head.
+
+        # Flow: conv -> relu -> pool, repeated, linear head.
         self.num_classes = num_classes
 
+        # Feature Extractor
+        self.features=nn.Sequential(
+
+            # Layer1->
+            nn.Conv2d(in_channel=1, out_channel=16, kernel_size=3, padding=1, stride=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            # Layer2->
+            nn.Conv2d(in_channel=16, out_channel=32, kernel_size=1, padding=1, stride=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+
+        )
+
+        # Classifier Head
+        self.classifier=nn.Sequential(
+                nn.Flatten(),
+                nn.Linear(in_features=32*7*7, out_features=128),
+                nn.ReLU(),
+                nn.Linear(in_features=128, out_features=num_classes)
+        )
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Compute logits for a batch of images.
 
-        Args:
-            x: Input image tensor of shape (B, 1, 28, 28).
-
-        Returns:
-            Logits tensor of shape (B, num_classes).
-        """
+        x=self.features(x)
+        logits=self.classifier(x)
+        return logits
+      
         raise NotImplementedError(
             "Implement MyCNN.forward with the planned conv/classifier path."
         )
