@@ -1,4 +1,4 @@
-"""Model skeleton for A02 fine-tuning."""
+"""Model implementation for A02 fine-tuning."""
 
 from __future__ import annotations
 
@@ -19,16 +19,21 @@ class FineTuner(nn.Module):
     def __init__(self, num_classes: int = 10, freeze: bool = True) -> None:
         """Initialize backbone and classifier head.
 
-        Learner task:
-            Configure freezing behavior and replace head as requested.
+        Configures freezing behavior and replaces the final classification head.
         """
         super().__init__()
+        # Load the pretrained ResNet-18 model
         self.backbone = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        # TODO: Freeze backbone params when freeze=True.
-        # TODO: Replace classifier head with output size num_classes.
-        raise NotImplementedError(
-            "Implement freeze logic and classifier head replacement in __init__."
-        )
+        
+        # 1. Freeze backbone parameters if freeze=True
+        if freeze:
+            for param in self.backbone.parameters():
+                param.requires_grad = False
+
+        # 2. Replace the classification head (model.fc) with the target number of classes
+        # This new linear layer will have requires_grad=True by default.
+        in_features = self.backbone.fc.in_features
+        self.backbone.fc = nn.Linear(in_features, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through model backbone."""
