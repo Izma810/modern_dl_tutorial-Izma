@@ -15,12 +15,12 @@ class MyCNN(nn.Module):
         self.features=nn.Sequential(
 
             # Layer1->
-            nn.Conv2d(in_channel=1, out_channel=16, kernel_size=3, padding=1, stride=1),
+            nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, padding=1, stride=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             # Layer2->
-            nn.Conv2d(in_channel=16, out_channel=32, kernel_size=1, padding=1, stride=1),
+            nn.Conv2d(in_channels=20, out_channels=32, kernel_size=1, padding=1, stride=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2)
 
@@ -29,7 +29,7 @@ class MyCNN(nn.Module):
         # Classifier Head
         self.classifier=nn.Sequential(
                 nn.Flatten(),
-                nn.Linear(in_features=32*7*7, out_features=128),
+                nn.Linear(in_features=2048, out_features=128),
                 nn.ReLU(),
                 nn.Linear(in_features=128, out_features=num_classes)
         )

@@ -20,7 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data_dir", type=str, default="./data")
     parser.add_argument("--save_dir", type=str, default="./artifacts")
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num_workers", type=int, default=2)
@@ -89,6 +89,7 @@ def main(args: argparse.Namespace) -> None:
         model = torch.compile(model)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    criterion = nn.CrossEntropyLoss()
 
     train_losses: list[float] = []
     val_accs: list[float] = []
@@ -101,14 +102,14 @@ def main(args: argparse.Namespace) -> None:
             images = images.to(device)
             labels = labels.to(device)
 
-            # TODO: zero gradients with optimizer.zero_grad()
-            # TODO: run forward pass logits = model(images)
-            # TODO: compute classification loss
-            # TODO: loss.backward()
-            # TODO: optimizer.step()
-            raise NotImplementedError(
-                "Fill in the core training step inside the loop."
-            )
+            optimizer.zero_grad()
+            logits = model(images)
+            loss = criterion(logits, labels)
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item() * images.size(0)
+            seen += images.size(0)
 
         train_loss = running_loss / max(seen, 1)
         _, val_acc = evaluate(model, val_loader, device)
