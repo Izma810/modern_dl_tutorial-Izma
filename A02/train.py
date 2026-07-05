@@ -86,7 +86,7 @@ def main(args: argparse.Namespace) -> None:
         model.train()
         run_loss = 0.0
         seen = 0
-        for x, y in train_loader:
+        for batch_idx, (x, y) in enumerate(train_loader):
             x = x.to(device)
             y = y.to(device)
             optimizer.zero_grad()
@@ -96,6 +96,9 @@ def main(args: argparse.Namespace) -> None:
             optimizer.step()
             run_loss += loss.item() * x.size(0)
             seen += x.size(0)
+
+            if batch_idx % 10 == 0:
+                print(f"Batch {batch_idx}/{len(train_loader)} | Loss: {loss.item():.4f}")
 
         train_loss = run_loss / max(seen, 1)
         val_metrics = run_eval(model, val_loader, device)
